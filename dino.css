@@ -1,0 +1,59 @@
+html {
+    background: #111;
+    color: #fcfcfc;
+    -webkit-text-stroke: 1px rgba(255, 255, 255, 0.1);
+}
+
+body {
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+
+h1 {
+    font: bold 260% "Helvetica Neue";
+    text-transform: uppercase;
+    letter-spacing: 5px;
+    text-align: center;
+}
+
+.loading {
+    font-size: 250%;
+}
+
+.yui3-tweetbox {
+    margin: 0 15px;
+}
+
+.yui3-tweetbox h2 {
+    font-size: 120%;
+    border-bottom: 1px solid #fff;
+}
+
+.yui3-tweetbox li {
+    clear: both;
+    display: block;
+    font-size: 230%;
+    margin-bottom: 15px;
+}
+
+.yui3-tweetbox .hcard {
+    float: left;
+    width: 70px;
+}
+
+.yui3-tweetbox .hcard span {
+    display: block;
+    font-size: 50%;
+}
+
+.yui3-tweetbox li:after {
+    content: ".";
+    display: block;
+    clear: both;
+    visibility: hidden;
+    line-height: 0;
+    height: 0;
+}
+
+.yui3-tweetbox p:after {
+    clear: both;
+}

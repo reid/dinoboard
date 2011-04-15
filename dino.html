@@ -1,0 +1,265 @@
+<!doctype html>
+<title>Dino</title>
+<link rel="stylesheet" href="http://yui.yahooapis.com/combo?3.3.0/build/cssreset/reset-min.css&amp;3.3.0/build/cssfonts/fonts-min.css&amp;3.3.0/build/cssgrids/grids-min.css">
+<link rel="stylesheet" href="dino.css">
+
+<h1>Dinoboard</h1>
+
+<div id="nowplaying">
+<p class="loading">Loading...</p>
+</div>
+
+<div id="tweets">
+<p class="loading">Loading...</p>
+</div>
+
+<div id="mytweets">
+<p class="loading">Loading...</p>
+</div>
+
+<script src="http://l.yimg.com/py/yui-rls-3.3.0-min.js"></script>
+
+<script>
+YUI().use("node", "jsonp", "yql", "widget", "transition", function(Y) {
+    var create = Y.Node.create,
+        sub = Y.Lang.sub,
+        BOUNDING_BOX = "boundingBox";
+
+    function NowPlayingBox() {
+        NowPlayingBox.superclass.constructor.apply(this, arguments);
+    }
+
+    NowPlayingBox.NAME = "nowplaying";
+
+    NowPlayingBox.ATTRS = {
+        intervalTimer : {
+            value: null
+        },
+        interval : {
+            value: 45 * 1000,
+            readOnly: true
+        },
+        "user" : {
+            value: "corruptlogic"
+        },
+        "key" : {
+            value: "",
+            readOnly: true
+        }
+    };
+
+    Y.extend(NowPlayingBox, Y.Widget, {
+        initializer: function () {
+            var fn = Y.bind("_query", this);
+            this.set("intervalTimer", this._periodic(fn));
+            fn();
+        },
+        destructor: function () {
+            this.get("intervalTimer").cancel();
+        },
+        _periodic: function (fn) {
+            return Y.later(this.get("interval"), this,
+                        fn, null, true);
+        },
+        _query: function () {
+            console.log("lastfm!");
+            Y.YQL(sub("SELECT * FROM lastfm.recenttracks " +
+                "WHERE user='{user}' AND " +
+                "api_key='{key}'", {
+                user: this.get("user"),
+                key: this.get("key")
+            }), Y.bind("syncUI", this));
+        },
+        syncUI: function (yql) {
+            if (!yql) return;
+
+            var box = this.get(BOUNDING_BOX),
+                track,
+                loadingMessage = this.get("contentBox").one(".loading");
+
+            if (loadingMessage) loadingMessage.remove();
+
+            console.log(yql);
+            try {
+                track = yql.query.results.lfm.recenttracks.track[0];
+            } catch (e) {
+                box.setContent("Last.fm API error");
+                return;
+            }
+
+            if ("nowplaying" in track) {
+                Y.Object.some(track.image, function (image) {
+                    var ret = image.size === "large";
+                    track.imageURL = image.content;
+                    return ret;
+                });
+
+                track.artist = track.artist.content;
+
+                var tune = create(sub('<img src="{imageURL}">' +
+                    '<span class="title">{title}</span>' +
+                    '<span class="artist">{artist}</span>',
+                    track));
+            } else {
+                var tune = "Nothing playing.";
+            }
+
+            box.setContent(tune);
+        }
+    });
+
+    function search(config, cb) {
+        config.query = encodeURIComponent(config.query);
+        if (!("since" in config)) config.since = 1;
+        console.log(config);
+        Y.jsonp(sub("http://search.twitter.com/" +
+            "search.json?callback={callback}&result_type=recent" +
+            "&q={query}&since_id={since}", config), {
+            on: {
+                success: cb,
+                failure: cb
+            }
+        });
+    }
+
+    function TweetBox() {
+        TweetBox.superclass.constructor.apply(this, arguments);
+    }
+
+    TweetBox.NAME = "tweetbox";
+
+    TweetBox.ATTRS = {
+        query: {
+            value: "#hacku OR from:hacku OR @hacku"
+        },
+        intervalTimer : {
+            value: null
+        },
+        lastTweet : {
+            value: 1
+        },
+        interval : {
+            value: 45 * 1000,
+            readOnly: true
+        },
+        limit: {
+            value: 30
+        },
+        displayedIds: {
+            value: []
+        },
+        tweetRegistry: {
+            value: {}
+        }
+    };
+
+    Y.extend(TweetBox, Y.Widget, {
+        initializer: function () {
+            var fn = Y.bind("_query", this);
+            this.set("intervalTimer", this._periodic(fn));
+            fn();
+        },
+        destructor: function () {
+            this.get("intervalTimer").cancel();
+        },
+        _query: function () {
+            console.log("periodic!");
+            search({
+                query: this.get("query"),
+                since: this.get("lastTweet")
+            }, Y.bind("syncUI", this));
+        },
+        _periodic: function (fn) {
+            return Y.later(this.get("interval"), this,
+                        fn, null, true);
+        },
+        renderUI: function() {
+            var box = this.get("contentBox");
+
+            var list = create("<ul class='tweets'></ul>");
+            box.append(list);
+
+            box.prepend(create(sub("<h2>Twitter: {q}</h2>", {
+                q: this.get("query")
+            })));
+        },
+        bindUI: function() {
+        },
+        syncUI: function(yql) {
+            if (!yql) return;
+
+            var limit = this.get("limit"),
+                box = this.get(BOUNDING_BOX),
+                list = box.one("ul"),
+                displayedIds = this.get("displayedIds"),
+                tweetRegistry = this.get("tweetRegistry"),
+                newIds = [],
+                newTweets = yql.results,
+                loadingMessage = this.get("contentBox").one(".loading");
+
+            if (loadingMessage) loadingMessage.remove();
+
+            this.set("lastTweet", yql.max_id_str);
+
+            // show new
+            Y.each(newTweets, function (tweet) {
+                if (tweet.id in tweetRegistry) return;
+                tweetRegistry[tweet.id] = tweet;
+
+                var tweet = create(sub(
+                    '<li id="tweet-{id}">' +
+                    '<div class="hcard"><img src="{profile_image_url}"' +
+                    ' alt="{from_user}\'s Picture"><span>' +
+                    '{from_user}</span></div><p>{text}</p></li>',
+                    tweet
+                ));
+                tweet.setStyle("opacity", 0);
+                box.append(tweet);
+                tweet.transition({
+                    easing: "ease-in",
+                    duration: 0.75,
+                    opacity: 1
+                });
+
+                // append to top
+                newIds.unshift(tweet.id);
+
+            });
+                console.log(yql);
+
+            console.log(displayedIds);
+
+            // all these are now displayed
+            displayedIds = newIds.concat(displayedIds);
+
+            // remove greater than the limit from displayedIds
+            // store removed ids
+            var staleIds = displayedIds.splice(limit);
+
+            // remove stale ids
+
+            // make sure only max is displayed
+            Y.each(staleIds, function (id) {
+                box.one("#tweet-" + id).remove();
+                delete tweetRegistry[id];
+            });
+
+            this.set("displayedIds", displayedIds);
+            this.set("tweetRegistry", tweetRegistry);
+        }
+    });
+
+    new NowPlayingBox({
+        srcNode: "#nowplaying"
+    }).render();
+
+    new TweetBox({
+        srcNode: "#tweets"
+    }).render();
+
+    new TweetBox({
+        query: "@reid",
+        srcNode: "#mytweets"
+    }).render();
+});
+</script>
