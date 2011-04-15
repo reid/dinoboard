@@ -5,15 +5,7 @@
 
 <h1>Dinoboard</h1>
 
-<div id="nowplaying">
-<p class="loading">Loading...</p>
-</div>
-
 <div id="tweets">
-<p class="loading">Loading...</p>
-</div>
-
-<div id="mytweets">
 <p class="loading">Loading...</p>
 </div>
 
@@ -24,103 +16,6 @@ YUI().use("node", "jsonp", "yql", "widget", "transition", function(Y) {
     var create = Y.Node.create,
         sub = Y.Lang.sub,
         BOUNDING_BOX = "boundingBox";
-
-    function NowPlayingBox() {
-        NowPlayingBox.superclass.constructor.apply(this, arguments);
-    }
-
-    NowPlayingBox.NAME = "nowplaying";
-
-    NowPlayingBox.ATTRS = {
-        intervalTimer : {
-            value: null
-        },
-        interval : {
-            value: 45 * 1000,
-            readOnly: true
-        },
-        "user" : {
-            value: "corruptlogic"
-        },
-        "key" : {
-            value: "",
-            readOnly: true
-        }
-    };
-
-    Y.extend(NowPlayingBox, Y.Widget, {
-        initializer: function () {
-            var fn = Y.bind("_query", this);
-            this.set("intervalTimer", this._periodic(fn));
-            fn();
-        },
-        destructor: function () {
-            this.get("intervalTimer").cancel();
-        },
-        _periodic: function (fn) {
-            return Y.later(this.get("interval"), this,
-                        fn, null, true);
-        },
-        _query: function () {
-            console.log("lastfm!");
-            Y.YQL(sub("SELECT * FROM lastfm.recenttracks " +
-                "WHERE user='{user}' AND " +
-                "api_key='{key}'", {
-                user: this.get("user"),
-                key: this.get("key")
-            }), Y.bind("syncUI", this));
-        },
-        syncUI: function (yql) {
-            if (!yql) return;
-
-            var box = this.get(BOUNDING_BOX),
-                track,
-                loadingMessage = this.get("contentBox").one(".loading");
-
-            if (loadingMessage) loadingMessage.remove();
-
-            console.log(yql);
-            try {
-                track = yql.query.results.lfm.recenttracks.track[0];
-            } catch (e) {
-                box.setContent("Last.fm API error");
-                return;
-            }
-
-            if ("nowplaying" in track) {
-                Y.Object.some(track.image, function (image) {
-                    var ret = image.size === "large";
-                    track.imageURL = image.content;
-                    return ret;
-                });
-
-                track.artist = track.artist.content;
-
-                var tune = create(sub('<img src="{imageURL}">' +
-                    '<span class="title">{title}</span>' +
-                    '<span class="artist">{artist}</span>',
-                    track));
-            } else {
-                var tune = "Nothing playing.";
-            }
-
-            box.setContent(tune);
-        }
-    });
-
-    function search(config, cb) {
-        config.query = encodeURIComponent(config.query);
-        if (!("since" in config)) config.since = 1;
-        console.log(config);
-        Y.jsonp(sub("http://search.twitter.com/" +
-            "search.json?callback={callback}&result_type=recent" +
-            "&q={query}&since_id={since}", config), {
-            on: {
-                success: cb,
-                failure: cb
-            }
-        });
-    }
 
     function TweetBox() {
         TweetBox.superclass.constructor.apply(this, arguments);
@@ -162,9 +57,22 @@ YUI().use("node", "jsonp", "yql", "widget", "transition", function(Y) {
         destructor: function () {
             this.get("intervalTimer").cancel();
         },
+        search: function(config, cb) {
+            config.query = encodeURIComponent(config.query);
+            if (!("since" in config)) config.since = 1;
+            console.log(config);
+            Y.jsonp(sub("http://search.twitter.com/" +
+                "search.json?callback={callback}&result_type=recent" +
+                "&q={query}&since_id={since}", config), {
+                on: {
+                    success: cb,
+                    failure: cb
+                }
+            });
+        },
         _query: function () {
             console.log("periodic!");
-            search({
+            this.search({
                 query: this.get("query"),
                 since: this.get("lastTweet")
             }, Y.bind("syncUI", this));
@@ -249,17 +157,9 @@ YUI().use("node", "jsonp", "yql", "widget", "transition", function(Y) {
         }
     });
 
-    new NowPlayingBox({
-        srcNode: "#nowplaying"
-    }).render();
-
     new TweetBox({
+        query: "from:yahoo OR from:yuilibrary OR from:ydn",
         srcNode: "#tweets"
-    }).render();
-
-    new TweetBox({
-        query: "@reid",
-        srcNode: "#mytweets"
     }).render();
 });
 </script>
