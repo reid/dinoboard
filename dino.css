@@ -1,22 +1,62 @@
 html {
     background: #111;
     color: #fcfcfc;
-    -webkit-text-stroke: 1px rgba(255, 255, 255, 0.1);
 }
 
 body {
     font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    font-size: 230%;
+}
+
+#hd {
+    color: #515151;
 }
 
 h1 {
-    font: bold 260% "Helvetica Neue";
-    text-transform: uppercase;
-    letter-spacing: 5px;
-    text-align: center;
+    padding: 30px 50px;
+    font: bold 120% "Helvetica Neue";
+    letter-spacing: -1px;
+    text-align: left;
+    float: left;
 }
 
 .loading {
     font-size: 250%;
+}
+
+.yui3-clockbox {
+    float: right;
+    padding: 0 50px 0;
+}
+
+#tweets {
+    clear: both;
+}
+
+#ft {
+    position: absolute;
+    bottom: 0;
+    opacity: 0.2;
+    padding: 0 50px;
+    text-align: right;
+    font-size: 21px;
+    letter-spacing: -1px;
+    height: 55px;
+    line-height: 55px;
+}
+
+#ft .yls { 
+    font-weight: bold;
+}
+#ft img {
+    vertical-align: middle;
+}
+
+
+.yui3-clockbox .clock {
+    font-size: 250%;
+    font-weight: bold;
+    text-align: center;
 }
 
 .yui3-tweetbox {
@@ -31,21 +71,48 @@ h1 {
 .yui3-tweetbox li {
     clear: both;
     display: block;
-    font-size: 230%;
     margin-bottom: 15px;
+    padding: 30px;
+    overflow: hidden;
 }
 
+.yui3-tweetbox li p {
+    clear: both;
+    background: #212121;
+    border-radius: 15px;
+    padding: 20px;
+    font-family: Georgia;
+    font-size: 93px;
+    line-height: 100px;
+    font-family: Georgia,Palatino,Helvetica Neue,Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing: antialiased;
+}
+
+
 .yui3-tweetbox .hcard {
-    float: left;
-    width: 70px;
+    height: 48px;
+    line-height: 48px;
+    margin: 0 20px 20px;
+    text-shadow: 0 2px 0 #000;
+}
+
+.yui3-tweetbox .hcard img {
+   float: left;
+   border: 1px solid #fff;
 }
 
 .yui3-tweetbox .hcard span {
     display: block;
-    font-size: 50%;
+    float: left;
+    margin-left: 10px;
+}
+.yui3-tweetbox .hcard .time {
+    float: right;
+    color: #bbb;
 }
 
-.yui3-tweetbox li:after {
+.yui3-tweetbox li:after,
+#clock:after {
     content: ".";
     display: block;
     clear: both;

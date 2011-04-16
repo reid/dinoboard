@@ -3,19 +3,80 @@
 <link rel="stylesheet" href="http://yui.yahooapis.com/combo?3.3.0/build/cssreset/reset-min.css&amp;3.3.0/build/cssfonts/fonts-min.css&amp;3.3.0/build/cssgrids/grids-min.css">
 <link rel="stylesheet" href="dino.css">
 
-<h1>Dinoboard</h1>
-
-<div id="tweets">
-<p class="loading">Loading...</p>
+<div id="hd">
+<h1>TwitterVision&trade;</h1>
+<div id="clock"></div>
 </div>
 
-<script src="http://l.yimg.com/py/yui-rls-3.3.0-min.js"></script>
+<div id="tweets"></div>
+
+<div id="ft">
+    You're watching
+    <img src="logo.png" alt="YUI">
+    <span class="yls">Loader Server</span>
+    at work, hosted by <span class="yls">Manhattan</span>,
+    the Yahoo! Node.js platform.
+</div>
+
+<script src="http://l.yimg.com/py/yui-rls-3.3.0-min.js?httpcache=tv-0&gzip=1"></script>
+<script src="http://yui.yahooapis.com/gallery-2010.08.25-19-45/build/gallery-torelativetime/gallery-torelativetime-min.js"></script>
 
 <script>
-YUI().use("node", "jsonp", "yql", "widget", "transition", function(Y) {
+(function () {
+YUI({
+    rls_base: "http://l.yimg.com/py/load?httpcache=tv-0&gzip=1&"
+}).use("node", "jsonp", "yql", "widget", "transition", function(Y) {
+    Y.use("gallery-torelativetime", function (Y) {
+        dinoboard(Y);
+    });
+});
+
+function dinoboard(Y) {
     var create = Y.Node.create,
         sub = Y.Lang.sub,
         BOUNDING_BOX = "boundingBox";
+
+    function ClockBox() {
+        ClockBox.superclass.constructor.apply(this, arguments);
+    }
+
+    ClockBox.NAME = "clockbox";
+
+    Y.extend(ClockBox, Y.Widget, {
+        initializer: function () {
+            this.set("intervalTimer", Y.later(1000, this, "syncUI", null, true));
+        },
+        destructor: function () {
+            this.get("intervalTimer").cancel();
+        },
+        renderUI: function () {
+            var box = this.get("contentBox");
+            box.append("<div class='clock'></div>");
+            box.one(".clock").setStyle("opacity", 0);
+        },
+        syncUI: function () {
+            var now = new Date,
+                box = this.get(BOUNDING_BOX),
+                tpl = {
+                    hour : now.getHours(),
+                    minute : now.getMinutes(),
+                    ampm : "AM"
+                };
+
+            if (tpl.hour > 12) {
+                tpl.hour = tpl.hour - 12;
+                tpl.ampm = "PM";
+            }
+            if (tpl.minute < 10) {
+                tpl.minute = "0" + tpl.minute;
+            }
+
+            box.one(".clock").setContent(create(sub(
+                "{hour}:{minute} <span class='ampm'>{ampm}</span>",
+                tpl
+            ))).show(true);
+        }
+    });
 
     function TweetBox() {
         TweetBox.superclass.constructor.apply(this, arguments);
@@ -30,8 +91,15 @@ YUI().use("node", "jsonp", "yql", "widget", "transition", function(Y) {
         intervalTimer : {
             value: null
         },
+        slideIntervalTimer : {
+            value: null
+        },
         lastTweet : {
             value: 1
+        },
+        slideInterval: {
+            value: 20000,
+            readOnly: true
         },
         interval : {
             value: 45 * 1000,
@@ -55,12 +123,14 @@ YUI().use("node", "jsonp", "yql", "widget", "transition", function(Y) {
             fn();
         },
         destructor: function () {
-            this.get("intervalTimer").cancel();
+            this.get("intervaltimer").cancel();
+            var slideTimer = this.get("slideIntervalTimer");
+            if (slideTimer) slideTimer.cancel();
         },
         search: function(config, cb) {
             config.query = encodeURIComponent(config.query);
             if (!("since" in config)) config.since = 1;
-            console.log(config);
+            //console.log(config);
             Y.jsonp(sub("http://search.twitter.com/" +
                 "search.json?callback={callback}&result_type=recent" +
                 "&q={query}&since_id={since}", config), {
@@ -71,7 +141,7 @@ YUI().use("node", "jsonp", "yql", "widget", "transition", function(Y) {
             });
         },
         _query: function () {
-            console.log("periodic!");
+            //console.log("periodic!");
             this.search({
                 query: this.get("query"),
                 since: this.get("lastTweet")
@@ -86,10 +156,11 @@ YUI().use("node", "jsonp", "yql", "widget", "transition", function(Y) {
 
             var list = create("<ul class='tweets'></ul>");
             box.append(list);
-
+            /*
             box.prepend(create(sub("<h2>Twitter: {q}</h2>", {
                 q: this.get("query")
             })));
+            */
         },
         bindUI: function() {
         },
@@ -114,28 +185,30 @@ YUI().use("node", "jsonp", "yql", "widget", "transition", function(Y) {
                 if (tweet.id in tweetRegistry) return;
                 tweetRegistry[tweet.id] = tweet;
 
-                var tweet = create(sub(
+                var time = Date.parse(tweet.created_at);
+                time = new Date(time);
+                tweet.created_ago = Y.toRelativeTime(time);
+                tweet = create(sub(
                     '<li id="tweet-{id}">' +
                     '<div class="hcard"><img src="{profile_image_url}"' +
-                    ' alt="{from_user}\'s Picture"><span>' +
-                    '{from_user}</span></div><p>{text}</p></li>',
+                    ' alt="{from_user}\'s Picture"><span class="user">' +
+                    '@{from_user}</span><span class="time">' + 
+                    '{created_ago}</span></div><p>{text}</p></li>',
                     tweet
                 ));
-                tweet.setStyle("opacity", 0);
-                box.append(tweet);
-                tweet.transition({
-                    easing: "ease-in",
-                    duration: 0.75,
-                    opacity: 1
+                tweet.setStyles({
+                    "display": "none",
+                    "opacity" : 0,
+                    "left": 0,
+                    "margin-left": 0
                 });
-
+                box.append(tweet);
                 // append to top
                 newIds.unshift(tweet.id);
-
             });
-                console.log(yql);
 
-            console.log(displayedIds);
+            console.log(yql);
+            //console.log(displayedIds);
 
             // all these are now displayed
             displayedIds = newIds.concat(displayedIds);
@@ -145,7 +218,6 @@ YUI().use("node", "jsonp", "yql", "widget", "transition", function(Y) {
             var staleIds = displayedIds.splice(limit);
 
             // remove stale ids
-
             // make sure only max is displayed
             Y.each(staleIds, function (id) {
                 box.one("#tweet-" + id).remove();
@@ -154,12 +226,49 @@ YUI().use("node", "jsonp", "yql", "widget", "transition", function(Y) {
 
             this.set("displayedIds", displayedIds);
             this.set("tweetRegistry", tweetRegistry);
+            this.advance();
+        },
+        advance: function () {
+            var box = this.get(BOUNDING_BOX),
+                timer = this.get("slideIntervalTimer"),
+                currentSlide = box.one("li.selected"),
+                nextSlide;
+
+            if (currentSlide) {
+                currentSlide.removeClass("selected");
+                nextSlide = currentSlide.next();
+            } else {
+                currentSlide = nextSlide = box.one("li");
+            }
+
+            if (!nextSlide) nextSlide = currentSlide;
+            if (!nextSlide) return false;
+            nextSlide.addClass("selected");
+
+            currentSlide.hide(true, {
+                duration: 0.2,
+                easing: "ease-out"
+            }, function () {
+                nextSlide.show(true, {
+                    duration: 0.2,
+                    easing: "ease-out"
+                });
+            });
+
+            if (timer) timer.cancel();
+            this.set("slideIntervalTimer",
+                Y.later(this.get("slideInterval"), this, "advance"));
         }
     });
 
+    new ClockBox({
+        srcNode: "#clock"
+    }).render();
+
     new TweetBox({
-        query: "from:yahoo OR from:yuilibrary OR from:ydn",
+        query: "from:yahoo OR from:flickr OR from:yql OR from:yuilibrary OR from:ydn OR from:yahoolabs OR from:hacku OR from:yuirelay",
         srcNode: "#tweets"
     }).render();
-});
+}
+})();
 </script>
