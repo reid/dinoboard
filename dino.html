@@ -4,7 +4,7 @@
 <link rel="stylesheet" href="dino.css">
 
 <div id="hd">
-<h1>TwitterVision&trade;</h1>
+<h1>HackerVision&trade;</h1>
 <div id="clock"></div>
 </div>
 
@@ -67,6 +67,8 @@ function dinoboard(Y) {
             if (tpl.hour > 12) {
                 tpl.hour = tpl.hour - 12;
                 tpl.ampm = "PM";
+            } else if (tpl.hour === 0) {
+                tpl.hour = 12;
             }
             if (tpl.minute < 10) {
                 tpl.minute = "0" + tpl.minute;
@@ -273,7 +275,7 @@ function dinoboard(Y) {
             value: null
         },
         interval : {
-            value: 45 * 1000,
+            value: 35 * 1000,
             readOnly: true
         },
         "user" : {
@@ -323,7 +325,7 @@ function dinoboard(Y) {
                 return;
             }
 
-            if ("nowplaying" in track) {
+            if (track) { // "nowplaying" in track) {
                 Y.Object.some(track.image, function (image) {
                     var ret = image.size === "large";
                     track.imageURL = image.content;
@@ -335,15 +337,20 @@ function dinoboard(Y) {
 
                 var tune = create(sub(
                     '<img src="{imageURL}">' +
-                    '<span class="title">{name}</span>' +
+                    '<span class="title">{name}</span> ' +
                     '<span class="artist">{artist}</span>',
                     track));
+
+                if (!track.imageURL) {
+                    tune.one("img").remove();
+                }
             } else {
-                var tune = "Nothing playing.";
+                var tune = create("<p>Nothing playing.</p>");
             }
 
-            box.all("*").destroy(true);
-            box.setContent(tune).prepend("<h2>Now Playing</h2>");
+            box.setContent(
+                create('<div class="jumbotrack"></div>').append(tune)
+            ).prepend("<h2>Now Playing</h2>");
         }
     });
 
@@ -356,7 +363,7 @@ function dinoboard(Y) {
     }).render();
 
     new TweetBox({
-        query: "from:hacku OR from:csua",
+        query: "from:CSUA OR from:hackernewsbot",
         // "from:yahoo OR from:flickr OR from:yql OR from:yuilibrary OR from:ydn OR from:yahoolabs OR from:hacku OR from:yuirelay",
         srcNode: "#tweets"
     }).render();

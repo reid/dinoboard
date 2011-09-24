@@ -29,7 +29,7 @@ h1 {
     padding: 0 50px 0;
 }
 
-#tweets {
+#nowplaying, #tweets {
     clear: both;
 }
 
@@ -57,6 +57,38 @@ h1 {
     font-size: 250%;
     font-weight: bold;
     text-align: center;
+}
+
+.yui3-nowplaying {
+    margin: 0 45px;
+}
+
+.yui3-nowplaying h2 {
+    clear: both;
+    font-size: 100%;
+    line-height: 48px;
+}
+
+.yui3-nowplaying .jumbotrack {
+    clear: both;
+    background: #212121;
+    border-radius: 15px;
+    padding: 20px;
+    font-size: 84px;
+    -webkit-font-smoothing: antialiased;
+}
+
+.yui3-nowplaying .jumbotrack img {
+    padding-right: 20px;
+    float: left;
+}
+
+.yui3-nowplaying .jumbotrack .title {
+    font-weight: bold;
+    display: block;
+}
+.yui3-nowplaying .jumbotrack .artist {
+    display: block;
 }
 
 .yui3-tweetbox {
@@ -111,6 +143,7 @@ h1 {
     color: #bbb;
 }
 
+.yui3-nowplaying .jumbotrack:after,
 .yui3-tweetbox li:after,
 #clock:after {
     content: ".";
@@ -121,6 +154,7 @@ h1 {
     height: 0;
 }
 
+.yui3-nowplaying .jumbotrack:after,
 .yui3-tweetbox p:after {
     clear: both;
 }
