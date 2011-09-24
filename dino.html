@@ -13,21 +13,30 @@
 <div id="tweets"></div>
 
 <div id="ft">
-    You're watching
+    Developed by
     <img src="logo.png" alt="YUI">
-    <span class="yls">RemoteLoader</span>
-    at work.
+    for your hacking needs.
 </div>
+
+<!--
+    We're using the YUI RemoteLoader service,
+    which is why the URL is a bit different.
+-->
 
 <script src="http://yui.yahooapis.com/combo?3.4.0/build/yui-rls/yui-rls-min.js&amp;gallery-2010.08.25-19-45/build/gallery-torelativetime/gallery-torelativetime-min.js"></script>
 
 <script>
 (function () {
 YUI({
+    // Enable the RemoteLoader seed.
     use_rls: true,
+    // RemoteLoader base path.
     rls_base: "http://yls.yahooapis.com/v1/load?httpcache=tv-0&"
 }).use("node", "jsonp", "yql", "widget", "transition", function(Y) {
+    // Non-YUI core modules must be in a nested use,
+    // since the service doesn't know about them.
     Y.use("gallery-torelativetime", function (Y) {
+        // Start Dinoboard.
         dinoboard(Y);
     });
 });
@@ -274,6 +283,9 @@ function dinoboard(Y) {
         intervalTimer : {
             value: null
         },
+        displayedURL: {
+            value: null
+        },
         interval : {
             value: 35 * 1000,
             readOnly: true
@@ -308,6 +320,41 @@ function dinoboard(Y) {
             });
             req.send();
         },
+        fetchArtistImage: function (artist) {
+            var req = new Y.YQLRequest(
+                sub("select images.image.sizes from lastfm.artist.getimages " +
+                    "where artist='{artist}' and limit='1'", {
+                        artist: artist
+                    }
+            ), Y.bind("appendArtistImage", this), {
+                env: "store://raw.github.com/dinoboard",
+            });
+            req.send();
+        },
+        appendArtistImage: function (yql) {
+            if (!yql) return;
+
+            var box = this.get(BOUNDING_BOX),
+                sizes;
+
+            try {
+                sizes = yql.query.results.lfm.images.image.sizes.size;
+            } catch (e) {
+                return;
+            }
+
+            Y.Object.some(sizes, function (image) {
+                var ret = image.size === "extralarge";
+                sizes.imageURL = image.content;
+                return ret;
+            });
+            console.log(sizes);
+            console.log("ready");
+
+            box.one(".jumbotrack").prepend(
+                create(sub('<img src="{imageURL}">', sizes))
+            );
+        },
         syncUI: function (yql) {
             if (!yql) return;
 
@@ -326,14 +373,21 @@ function dinoboard(Y) {
             }
 
             if (track) { // "nowplaying" in track) {
+                if (track.url === this.get("displayedURL")) {
+                    return;
+                }
+
                 Y.Object.some(track.image, function (image) {
-                    var ret = image.size === "large";
+                    var ret = image.size === "extralarge";
                     track.imageURL = image.content;
                     return ret;
                 });
 
                 track.artist = track.artist.content;
-                console.log(track);
+
+                if (!track.imageURL) {
+                    this.fetchArtistImage(track.artist);
+                }
 
                 var tune = create(sub(
                     '<img src="{imageURL}">' +
@@ -351,6 +405,8 @@ function dinoboard(Y) {
             box.setContent(
                 create('<div class="jumbotrack"></div>').append(tune)
             ).prepend("<h2>Now Playing</h2>");
+
+            this.set("displayedURL", track.url);
         }
     });
 
