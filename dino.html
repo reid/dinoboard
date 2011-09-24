@@ -311,8 +311,8 @@ function dinoboard(Y) {
         _query: function () {
             console.log("lastfm!");
             var req = new Y.YQLRequest(
-                sub("SELECT recenttracks.track FROM lastfm.recenttracks " +
-                    "WHERE user='{user}' LIMIT 1", {
+                sub("select recenttracks.track FROM lastfm.recenttracks " +
+                    "where user='{user}' limit 1", {
                         user: this.get("user")
                     }
             ), Y.bind("syncUI", this), {
@@ -368,8 +368,7 @@ function dinoboard(Y) {
             try {
                 track = yql.query.results.lfm.recenttracks.track;
             } catch (e) {
-                box.setContent("Last.fm API error");
-                return;
+                track = null;
             }
 
             if (track) { // "nowplaying" in track) {
