@@ -18,13 +18,13 @@
     the Yahoo! Node.js platform.
 </div>
 
-<script src="http://l.yimg.com/py/yui-rls-3.3.0-min.js?httpcache=tv-0&gzip=1"></script>
-<script src="http://yui.yahooapis.com/gallery-2010.08.25-19-45/build/gallery-torelativetime/gallery-torelativetime-min.js"></script>
+<script src="http://yui.yahooapis.com/combo?3.4.0/build/yui-rls/yui-rls-min.js&amp;gallery-2010.08.25-19-45/build/gallery-torelativetime/gallery-torelativetime-min.js"></script>
 
 <script>
 (function () {
 YUI({
-    rls_base: "http://l.yimg.com/py/load?httpcache=tv-0&gzip=1&"
+    use_rls: true,
+    rls_base: "http://yls.yahooapis.com/v1/load?httpcache=tv-0&"
 }).use("node", "jsonp", "yql", "widget", "transition", function(Y) {
     Y.use("gallery-torelativetime", function (Y) {
         dinoboard(Y);
