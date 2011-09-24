@@ -8,14 +8,15 @@
 <div id="clock"></div>
 </div>
 
+<div id="nowplaying"></div>
+
 <div id="tweets"></div>
 
 <div id="ft">
     You're watching
     <img src="logo.png" alt="YUI">
-    <span class="yls">Loader Server</span>
-    at work, hosted by <span class="yls">Manhattan</span>,
-    the Yahoo! Node.js platform.
+    <span class="yls">RemoteLoader</span>
+    at work.
 </div>
 
 <script src="http://yui.yahooapis.com/combo?3.4.0/build/yui-rls/yui-rls-min.js&amp;gallery-2010.08.25-19-45/build/gallery-torelativetime/gallery-torelativetime-min.js"></script>
@@ -261,12 +262,100 @@ function dinoboard(Y) {
         }
     });
 
+    function NowPlayingBox() {
+        NowPlayingBox.superclass.constructor.apply(this, arguments);
+    }
+
+    NowPlayingBox.NAME = "nowplaying";
+
+    NowPlayingBox.ATTRS = {
+        intervalTimer : {
+            value: null
+        },
+        interval : {
+            value: 45 * 1000,
+            readOnly: true
+        },
+        "user" : {
+            value: "corruptlogic"
+        }
+    };
+
+    Y.extend(NowPlayingBox, Y.Widget, {
+        initializer: function () {
+            var fn = Y.bind("_query", this);
+            this.set("intervalTimer", this._periodic(fn));
+            fn();
+        },
+        destructor: function () {
+            this.get("intervalTimer").cancel();
+        },
+        _periodic: function (fn) {
+            return Y.later(this.get("interval"), this,
+                        fn, null, true);
+        },
+        _query: function () {
+            console.log("lastfm!");
+            var req = new Y.YQLRequest(
+                sub("SELECT * FROM lastfm.recenttracks " +
+                    "WHERE user='{user}'", {
+                        user: this.get("user")
+                    }
+            ), Y.bind("syncUI", this), {
+                env: "store://raw.github.com/dinoboard",
+            });
+            req.send();
+        },
+        syncUI: function (yql) {
+            if (!yql) return;
+
+            var box = this.get(BOUNDING_BOX),
+                track,
+                loadingMessage = this.get("contentBox").one(".loading");
+
+            if (loadingMessage) loadingMessage.remove();
+
+            console.log(yql);
+            try {
+                track = yql.query.results.lfm.recenttracks.track[0];
+            } catch (e) {
+                box.setContent("Last.fm API error");
+                return;
+            }
+
+            if ("nowplaying" in track) {
+                Y.Object.some(track.image, function (image) {
+                    var ret = image.size === "large";
+                    track.imageURL = image.content;
+                    return ret;
+                });
+
+                track.artist = track.artist.content;
+                console.log(track);
+
+                var tune = create(sub('<img src="{imageURL}">' +
+                    '<span class="title">{name}</span>' +
+                    '<span class="artist">{artist}</span>',
+                    track));
+            } else {
+                var tune = "Nothing playing.";
+            }
+
+            box.setContent(tune);
+        }
+    });
+
+    new NowPlayingBox({
+        srcNode: "#nowplaying"
+    }).render();
+
     new ClockBox({
         srcNode: "#clock"
     }).render();
 
     new TweetBox({
-        query: "from:yahoo OR from:flickr OR from:yql OR from:yuilibrary OR from:ydn OR from:yahoolabs OR from:hacku OR from:yuirelay",
+        query: "from:hacku OR from:csua",
+        // "from:yahoo OR from:flickr OR from:yql OR from:yuilibrary OR from:ydn OR from:yahoolabs OR from:hacku OR from:yuirelay",
         srcNode: "#tweets"
     }).render();
 }
