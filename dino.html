@@ -333,7 +333,8 @@ function dinoboard(Y) {
                 track.artist = track.artist.content;
                 console.log(track);
 
-                var tune = create(sub('<img src="{imageURL}">' +
+                var tune = create(sub(
+                    '<img src="{imageURL}">' +
                     '<span class="title">{name}</span>' +
                     '<span class="artist">{artist}</span>',
                     track));
@@ -341,7 +342,8 @@ function dinoboard(Y) {
                 var tune = "Nothing playing.";
             }
 
-            box.setContent(tune);
+            box.all("*").destroy(true);
+            box.setContent(tune).prepend("<h2>Now Playing</h2>");
         }
     });
 
